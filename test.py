@@ -6,11 +6,11 @@ import sys
 def extract_cmds_from_file(filepath):
     with open(filepath, 'r') as file:
         file_content = file.read()
-        match = re.search(r'CMDS\s*=\s*(\[.*?\])', file_content, re.DOTALL)
-        if match:
-            cmds_str = match.group(1)
-            cmds = eval(cmds_str)
-            return cmds
+        variable_matches = re.findall(r'CMDS\s*=\s*(\[.*?\])', file_content, re.DOTALL)
+        for var_match in variable_matches:
+            echo_matches = re.findall(r"'echo\s+\d+'", var_match)
+        if echo_matches:
+            return echo_matches
     return []
 
 
@@ -22,7 +22,8 @@ def gather_all_cmds(directory):
                 filepath = os.path.join(root, file)
                 file_cmds = extract_cmds_from_file(filepath)
                 if file_cmds:
-                    cmds.append(filepath, file_cmds)
+                    for cmd in file_cmds:
+                        cmds.append((filepath, cmd))
     if cmds:
         return sorted(cmds)
     else:
@@ -33,13 +34,12 @@ def gather_all_cmds(directory):
 def execute_cmds(cmds):
     unic_executed = set()
     for _, file_cmds in cmds:
-        for cmd in file_cmds:
-            if cmd not in unic_executed:
-                print(cmd)
-                os.system(cmd)
-                unic_executed.add(cmd)
-            else:
-                print(f'Команда {cmd} уже выполнялась')
+        if file_cmds not in unic_executed:
+            # os.system(file_cmds.strip("'"))
+            os.system(eval(file_cmds))
+            unic_executed.add(file_cmds)
+        else:
+            print(f'Команда {file_cmds} уже выполнялась')
 
 
 if __name__ == '__main__':
